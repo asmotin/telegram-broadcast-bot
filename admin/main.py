@@ -6,6 +6,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from sqlalchemy.orm import selectinload
+
 from shared.database import SessionLocal, init_db
 from shared.models import AdminUser, Broadcast, BroadcastLog, Group, GroupLabel, Label
 
@@ -83,7 +85,13 @@ async def dashboard(request: Request, _=Depends(check_auth)):
         total_groups = db.query(Group).filter_by(is_active=1).count()
         total_labels = db.query(Label).count()
         total_broadcasts = db.query(Broadcast).count()
-        recent = db.query(Broadcast).order_by(Broadcast.sent_at.desc()).limit(5).all()
+        recent = (
+            db.query(Broadcast)
+            .options(selectinload(Broadcast.label))
+            .order_by(Broadcast.sent_at.desc())
+            .limit(5)
+            .all()
+        )
     return templates.TemplateResponse("index.html", {
         "request": request,
         "total_groups": total_groups,
@@ -98,7 +106,12 @@ async def dashboard(request: Request, _=Depends(check_auth)):
 @app.get("/groups", response_class=HTMLResponse)
 async def groups_page(request: Request, _=Depends(check_auth)):
     with SessionLocal() as db:
-        groups = db.query(Group).order_by(Group.is_active.desc(), Group.title).all()
+        groups = (
+            db.query(Group)
+            .options(selectinload(Group.labels))
+            .order_by(Group.is_active.desc(), Group.title)
+            .all()
+        )
         labels = db.query(Label).order_by(Label.name).all()
     return templates.TemplateResponse("groups.html", {
         "request": request,
@@ -132,7 +145,12 @@ async def remove_label_from_group(group_id: int, label_id: int, _=Depends(check_
 @app.get("/labels", response_class=HTMLResponse)
 async def labels_page(request: Request, _=Depends(check_auth)):
     with SessionLocal() as db:
-        labels = db.query(Label).order_by(Label.name).all()
+        labels = (
+            db.query(Label)
+            .options(selectinload(Label.groups))
+            .order_by(Label.name)
+            .all()
+        )
     return templates.TemplateResponse("labels.html", {"request": request, "labels": labels})
 
 
@@ -179,8 +197,19 @@ async def edit_label(
 @app.get("/broadcasts", response_class=HTMLResponse)
 async def broadcasts_page(request: Request, _=Depends(check_auth)):
     with SessionLocal() as db:
-        labels = db.query(Label).order_by(Label.name).all()
-        history = db.query(Broadcast).order_by(Broadcast.sent_at.desc()).limit(50).all()
+        labels = (
+            db.query(Label)
+            .options(selectinload(Label.groups))
+            .order_by(Label.name)
+            .all()
+        )
+        history = (
+            db.query(Broadcast)
+            .options(selectinload(Broadcast.label))
+            .order_by(Broadcast.sent_at.desc())
+            .limit(50)
+            .all()
+        )
     return templates.TemplateResponse("broadcasts.html", {
         "request": request,
         "labels": labels,
@@ -247,11 +276,17 @@ async def send_broadcast(
 @app.get("/broadcasts/{broadcast_id}/detail", response_class=HTMLResponse)
 async def broadcast_detail(broadcast_id: int, request: Request, _=Depends(check_auth)):
     with SessionLocal() as db:
-        broadcast = db.query(Broadcast).get(broadcast_id)
+        broadcast = (
+            db.query(Broadcast)
+            .options(selectinload(Broadcast.label))
+            .filter_by(id=broadcast_id)
+            .first()
+        )
         if not broadcast:
             raise HTTPException(404)
         logs = (
             db.query(BroadcastLog)
+            .options(selectinload(BroadcastLog.group))
             .filter_by(broadcast_id=broadcast_id)
             .all()
         )
