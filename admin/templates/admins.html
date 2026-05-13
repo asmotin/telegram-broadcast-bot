@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Администраторы — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Администраторы</h1>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><h2>Суперадмины</h2></div>
+  <div class="card-body">
+    <p class="text-muted" style="margin-bottom:12px">
+      Задаются через переменную <code>SUPERADMIN_IDS</code> в <code>.env</code>.
+      Имеют полный доступ и не могут быть удалены из веб-панели.
+    </p>
+    {% if superadmin_ids %}
+    <div class="label-list">
+      {% for uid in superadmin_ids %}
+      <span class="badge badge-label">👑 <code>{{ uid }}</code></span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-error">
+      ⚠️ Не задан ни один суперадмин. Добавьте <code>SUPERADMIN_IDS</code> в <code>.env</code>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><h2>Добавить администратора</h2></div>
+  <div class="card-body">
+    <p class="text-muted" style="margin-bottom:12px">
+      Пользователь узнает свой Telegram ID, написав боту — он получит его в сообщении об отказе в доступе.
+    </p>
+    <form method="post" action="/admins/add" class="inline-form">
+      <input
+        type="number"
+        name="telegram_id"
+        placeholder="Telegram ID (напр. 123456789)"
+        class="form-input"
+        style="max-width:260px"
+        required
+      >
+      <input
+        type="text"
+        name="username"
+        placeholder="@username (необязательно)"
+        class="form-input"
+        style="max-width:200px"
+      >
+      <input
+        type="text"
+        name="full_name"
+        placeholder="Имя (необязательно)"
+        class="form-input"
+        style="max-width:200px"
+      >
+      <button type="submit" class="btn btn-primary">Добавить</button>
+    </form>
+    {% if error %}<div class="alert alert-error mt-3">{{ error }}</div>{% endif %}
+    {% if success %}<div class="alert alert-success mt-3">{{ success }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Активные администраторы</h2>
+    <span class="text-muted">{{ admins | length }} чел.</span>
+  </div>
+  {% if admins %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Telegram ID</th>
+        <th>Username</th>
+        <th>Имя</th>
+        <th>Добавил</th>
+        <th>Дата</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in admins %}
+      <tr>
+        <td><code>{{ a.telegram_id }}</code></td>
+        <td>{% if a.username %}<span class="text-link">@{{ a.username }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td>{{ a.full_name or '—' }}</td>
+        <td class="text-muted">
+          {% if a.added_by_name %}@{{ a.added_by_name }}
+          {% elif a.added_by_id %}<code>{{ a.added_by_id }}</code>
+          {% else %}—{% endif %}
+        </td>
+        <td class="nowrap text-muted">{{ a.added_at | datetime }}</td>
+        <td>
+          <form method="post" action="/admins/{{ a.id }}/remove"
+                onsubmit="return confirm('Удалить администратора {{ a.username or a.telegram_id }}?')">
+            <button type="submit" class="btn btn-sm btn-danger">🗑 Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>Дополнительных администраторов нет. Все управление через суперадминов из конфига.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

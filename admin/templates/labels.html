@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Ярлыки — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Ярлыки</h1>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><h2>Создать ярлык</h2></div>
+  <div class="card-body">
+    <form method="post" action="/labels/create" class="inline-form">
+      <input type="text" name="name" placeholder="Название (напр. swift_payments)" class="form-input" required>
+      <input type="text" name="description" placeholder="Описание (необязательно)" class="form-input">
+      <button type="submit" class="btn btn-primary">Создать</button>
+    </form>
+  </div>
+</div>
+
+{% if not labels %}
+<div class="card">
+  <div class="empty-state">
+    <p>Ярлыков нет. Создайте первый выше.</p>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Описание</th>
+        <th>Групп</th>
+        <th>Создан</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for label in labels %}
+      <tr>
+        <td><span class="badge badge-label">{{ label.name }}</span></td>
+        <td>
+          <form method="post" action="/labels/{{ label.id }}/edit" class="inline-form-compact">
+            <input
+              type="text"
+              name="description"
+              value="{{ label.description or '' }}"
+              placeholder="Добавить описание…"
+              class="form-input form-input-sm"
+            >
+            <button type="submit" class="btn btn-sm btn-secondary">💾</button>
+          </form>
+        </td>
+        <td>
+          <a href="/groups" class="text-link">{{ label.groups | length }}</a>
+        </td>
+        <td class="nowrap text-muted">{{ label.created_at | datetime }}</td>
+        <td>
+          <form method="post" action="/labels/{{ label.id }}/delete"
+                onsubmit="return confirm('Удалить ярлык {{ label.name }}? Все назначения будут сняты.')">
+            <button type="submit" class="btn btn-sm btn-danger">🗑 Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

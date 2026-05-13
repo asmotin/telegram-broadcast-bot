@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Рассылки — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Рассылки</h1>
+</div>
+
+{% set ok = request.query_params.get('ok') %}
+{% set fail = request.query_params.get('fail') %}
+{% if ok is not none %}
+<div class="alert alert-success">
+  ✅ Рассылка отправлена: <strong>{{ ok }}</strong> успешно, <strong>{{ fail }}</strong> ошибок.
+</div>
+{% endif %}
+{% if error is defined and error %}
+<div class="alert alert-error">❌ {{ error }}</div>
+{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header"><h2>Новая рассылка</h2></div>
+  <div class="card-body">
+    {% if not labels %}
+    <div class="empty-state">
+      <p>Нет ярлыков. <a href="/labels">Создайте ярлык</a>, затем назначьте группам.</p>
+    </div>
+    {% else %}
+    <form method="post" action="/broadcasts/send" id="broadcast-form">
+      <div class="form-group">
+        <label class="form-label">Ярлык рассылки</label>
+        <select name="label_id" class="form-select" id="label-select" required onchange="updateGroupCount(this)">
+          <option value="" disabled selected>Выберите ярлык…</option>
+          {% for label in labels %}
+          <option value="{{ label.id }}" data-count="{{ label.groups | selectattr('is_active', 'equalto', 1) | list | length }}">
+            {{ label.name }}{% if label.description %} — {{ label.description }}{% endif %}
+            ({{ label.groups | selectattr('is_active', 'equalto', 1) | list | length }} групп)
+          </option>
+          {% endfor %}
+        </select>
+        <p class="form-hint" id="group-hint"></p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Текст сообщения</label>
+        <div class="format-hints">
+          <span>HTML-теги:</span>
+          <button type="button" class="fmt-btn" onclick="insertTag('b')"><b>B</b></button>
+          <button type="button" class="fmt-btn" onclick="insertTag('i')"><i>I</i></button>
+          <button type="button" class="fmt-btn" onclick="insertTag('code')">code</button>
+          <button type="button" class="fmt-btn" onclick="insertLink()">🔗 Ссылка</button>
+        </div>
+        <textarea
+          name="message"
+          id="message-input"
+          class="form-textarea"
+          rows="8"
+          placeholder="Введите текст сообщения. Поддерживается HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;, &lt;a href=&quot;url&quot;&gt;ссылка&lt;/a&gt;"
+          required
+        ></textarea>
+      </div>
+
+      <div class="preview-section" id="preview-section" style="display:none">
+        <label class="form-label">Предпросмотр:</label>
+        <div class="message-preview" id="preview-content"></div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="togglePreview()">👁 Предпросмотр</button>
+        <button type="submit" class="btn btn-primary" onclick="return confirmSend()">📢 Отправить рассылку</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>История рассылок</h2></div>
+  {% if history %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Ярлык</th>
+        <th>Отправил</th>
+        <th>Сообщение</th>
+        <th>✅</th>
+        <th>❌</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in history %}
+      <tr>
+        <td class="nowrap">{{ b.sent_at | datetime }}</td>
+        <td>
+          {% if b.label %}<span class="badge badge-label">{{ b.label.name }}</span>
+          {% else %}<span class="text-muted">удалён</span>{% endif %}
+        </td>
+        <td class="text-muted">{{ b.sent_by }}</td>
+        <td class="text-truncate">{{ b.message[:60] }}{% if b.message|length > 60 %}…{% endif %}</td>
+        <td class="text-success">{{ b.success_count }}</td>
+        <td class="{% if b.fail_count > 0 %}text-error{% endif %}">
+          {% if b.fail_count > 0 %}{{ b.fail_count }}{% else %}—{% endif %}
+        </td>
+        <td><a href="/broadcasts/{{ b.id }}/detail" class="btn btn-sm btn-secondary">Детали</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><p>История пуста.</p></div>
+  {% endif %}
+</div>
+
+<script>
+function updateGroupCount(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const count = opt.dataset.count || 0;
+  document.getElementById('group-hint').textContent =
+    count > 0 ? `Сообщение получат ${count} активных групп` : 'Нет активных групп с этим ярлыком';
+}
+function togglePreview() {
+  const sec = document.getElementById('preview-section');
+  const text = document.getElementById('message-input').value;
+  document.getElementById('preview-content').innerHTML = text;
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+}
+function confirmSend() {
+  const sel = document.getElementById('label-select');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return false;
+  const count = opt.dataset.count || 0;
+  return confirm(`Отправить рассылку в ${count} групп(ы)?`);
+}
+function insertTag(tag) {
+  const ta = document.getElementById('message-input');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const selected = ta.value.substring(s, e);
+  const replacement = `<${tag}>${selected}</${tag}>`;
+  ta.value = ta.value.substring(0, s) + replacement + ta.value.substring(e);
+  ta.focus();
+  ta.selectionStart = s + tag.length + 2;
+  ta.selectionEnd = s + tag.length + 2 + selected.length;
+}
+function insertLink() {
+  const url = prompt('URL ссылки:');
+  if (!url) return;
+  const text = prompt('Текст ссылки:') || url;
+  const ta = document.getElementById('message-input');
+  const s = ta.selectionStart;
+  const link = `<a href="${url}">${text}</a>`;
+  ta.value = ta.value.substring(0, s) + link + ta.value.substring(s);
+}
+</script>
+{% endblock %}

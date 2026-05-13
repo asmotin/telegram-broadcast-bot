@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Детали рассылки — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <a href="/broadcasts" class="btn btn-secondary btn-sm">← Назад</a>
+  <h1>Рассылка #{{ broadcast.id }}</h1>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span class="detail-label">Дата</span>
+        <span>{{ broadcast.sent_at | datetime }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Ярлык</span>
+        <span>{% if broadcast.label %}<span class="badge badge-label">{{ broadcast.label.name }}</span>{% else %}удалён{% endif %}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Отправил</span>
+        <span>{{ broadcast.sent_by }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Результат</span>
+        <span class="text-success">✅ {{ broadcast.success_count }}</span>
+        &nbsp;
+        <span class="{% if broadcast.fail_count > 0 %}text-error{% endif %}">❌ {{ broadcast.fail_count }}</span>
+      </div>
+    </div>
+    <div class="mt-3">
+      <span class="detail-label">Сообщение:</span>
+      <div class="message-preview mt-1">{{ broadcast.message }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Лог отправки</h2></div>
+  <table class="table">
+    <thead>
+      <tr><th>Группа</th><th>Статус</th><th>Ошибка</th><th>Время</th></tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.group.title if log.group else '—' }}</td>
+        <td>{% if log.success %}<span class="text-success">✅ Успешно</span>{% else %}<span class="text-error">❌ Ошибка</span>{% endif %}</td>
+        <td class="text-muted">{{ log.error or '—' }}</td>
+        <td class="nowrap">{{ log.sent_at | datetime }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

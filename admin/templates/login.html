@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Broadcast Admin</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="login-icon">📢</div>
+    <h1>Broadcast Admin</h1>
+    <p class="login-subtitle">Введите пароль для входа</p>
+    {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/login">
+      <div class="form-group">
+        <input
+          type="password"
+          name="password"
+          placeholder="Пароль"
+          class="form-input"
+          autofocus
+          required
+        >
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Войти</button>
+    </form>
+  </div>
+</body>
+</html>

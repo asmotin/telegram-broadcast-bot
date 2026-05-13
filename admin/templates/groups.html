@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Группы — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Группы</h1>
+  <span class="text-muted">Бот автоматически регистрирует группы при добавлении</span>
+</div>
+
+{% if not groups %}
+<div class="card">
+  <div class="empty-state">
+    <p>Бот ещё не добавлен ни в одну группу.</p>
+  </div>
+</div>
+{% else %}
+{% for group in groups %}
+<div class="card mb-3" id="{{ group.id }}">
+  <div class="card-header">
+    <div class="group-title">
+      <span class="status-dot {% if group.is_active %}active{% else %}inactive{% endif %}"></span>
+      <strong>{{ group.title }}</strong>
+      {% if group.username %}
+        <span class="text-muted">@{{ group.username }}</span>
+      {% else %}
+        <span class="text-muted">{{ group.telegram_id }}</span>
+      {% endif %}
+    </div>
+    <span class="badge badge-{% if group.is_active %}success{% else %}error{% endif %}">
+      {% if group.is_active %}Активна{% else %}Бот удалён{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="label-section">
+      <span class="label-section-title">Ярлыки:</span>
+      <div class="label-list">
+        {% for label in group.labels %}
+        <span class="badge badge-label">
+          {{ label.name }}
+          <form method="post" action="/groups/{{ group.id }}/labels/{{ label.id }}/remove" style="display:inline">
+            <button type="submit" class="badge-remove" title="Снять ярлык">×</button>
+          </form>
+        </span>
+        {% else %}
+        <span class="text-muted">Нет ярлыков</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if group.is_active %}
+    <form method="post" action="/groups/{{ group.id }}/labels/add" class="add-label-form">
+      <select name="label_id" class="form-select form-select-sm">
+        <option value="" disabled selected>Добавить ярлык…</option>
+        {% for label in labels %}
+          {% if label not in group.labels %}
+          <option value="{{ label.id }}">{{ label.name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-primary">+ Добавить</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

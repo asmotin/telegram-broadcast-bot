@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Главная — Broadcast Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Главная</h1>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-value">{{ total_groups }}</div>
+    <div class="stat-label">Активных групп</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🏷</div>
+    <div class="stat-value">{{ total_labels }}</div>
+    <div class="stat-label">Ярлыков</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📨</div>
+    <div class="stat-value">{{ total_broadcasts }}</div>
+    <div class="stat-label">Рассылок отправлено</div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header">
+    <h2>Последние рассылки</h2>
+    <a href="/broadcasts" class="btn btn-sm btn-secondary">Все рассылки</a>
+  </div>
+  {% if recent %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Ярлык</th>
+        <th>Сообщение</th>
+        <th>Успешно</th>
+        <th>Ошибки</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in recent %}
+      <tr>
+        <td class="nowrap">{{ b.sent_at | datetime }}</td>
+        <td>
+          {% if b.label %}
+            <span class="badge">{{ b.label.name }}</span>
+          {% else %}
+            <span class="text-muted">удалён</span>
+          {% endif %}
+        </td>
+        <td class="text-truncate">{{ b.message[:80] }}{% if b.message|length > 80 %}…{% endif %}</td>
+        <td class="text-success">✅ {{ b.success_count }}</td>
+        <td class="{% if b.fail_count > 0 %}text-error{% endif %}">
+          {% if b.fail_count > 0 %}❌ {{ b.fail_count }}{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>Рассылок пока не было.</p>
+    <a href="/broadcasts" class="btn btn-primary">Создать рассылку</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="quick-actions mt-4">
+  <a href="/broadcasts" class="quick-card">
+    <span class="quick-icon">📢</span>
+    <span>Новая рассылка</span>
+  </a>
+  <a href="/groups" class="quick-card">
+    <span class="quick-icon">👥</span>
+    <span>Управление группами</span>
+  </a>
+  <a href="/labels" class="quick-card">
+    <span class="quick-icon">🏷</span>
+    <span>Управление ярлыками</span>
+  </a>
+</div>
+{% endblock %}
